@@ -1,0 +1,4 @@
+filename,product_name,brand,category,is_imported,surface_treatment,calibration_px_per_mm
+label_clean.png,Refined Sunflower Oil 1L,SunGold,Edible Oil,false,,8.0
+label_missing_fields.png,Instant Noodles 70g,TastyMax,Packaged Food,false,,8.0
+label_rotated_lowcontrast.png,Basmati Rice 5kg,Daawat,Staples,false,,8.0

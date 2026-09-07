@@ -1,0 +1,129 @@
+{
+  "version_label": "2025-09-draft-v1",
+  "source": "Legal Metrology (Packaged Commodities) Rules, 2011 (as amended)",
+  "note": "This config is the single source of truth for the compliance engine. Do not hardcode thresholds in application code — always read from here. Some entries are marked NEEDS_VERIFICATION where the exact legal text should be re-checked against the current official gazette notification before this is relied on for real enforcement decisions.",
+
+  "mandatory_declarations": [
+    {
+      "rule_id": "R6-1-a",
+      "citation": "Rule 6(1)(a)",
+      "field": "manufacturer_packer_importer_details",
+      "description": "Name and address of the manufacturer, or where the manufacturer is not the packer, the name and address of the manufacturer and packer; for imported packages, the name and address of the importer.",
+      "severity_if_missing": "major"
+    },
+    {
+      "rule_id": "R6-1-a-origin",
+      "citation": "Rule 6",
+      "field": "country_of_origin",
+      "description": "Country of origin, applicable only for imported products.",
+      "condition": "applies_if.is_imported == true",
+      "severity_if_missing": "major"
+    },
+    {
+      "rule_id": "R6-1-b",
+      "citation": "Rule 6(1)(b)",
+      "field": "generic_name",
+      "description": "The common or generic name of the commodity contained in the package.",
+      "severity_if_missing": "major"
+    },
+    {
+      "rule_id": "R6-1-net-qty",
+      "citation": "Rule 6",
+      "field": "net_quantity",
+      "description": "Net quantity of the commodity in the package, expressed in standard units of weight, measure, or number.",
+      "severity_if_missing": "critical"
+    },
+    {
+      "rule_id": "R6-1-mrp",
+      "citation": "Rule 6",
+      "field": "retail_sale_price",
+      "description": "Retail sale price (MRP), which must be inclusive of all taxes.",
+      "format_check": "must_contain_inclusive_of_taxes_wording",
+      "severity_if_missing": "critical"
+    },
+    {
+      "rule_id": "R6-1-date",
+      "citation": "Rule 6",
+      "field": "date_of_manufacture_or_packing_or_import",
+      "description": "Month and year in which the commodity was manufactured, packed, or imported.",
+      "severity_if_missing": "major"
+    },
+    {
+      "rule_id": "R6-2-consumer-care",
+      "citation": "Rule 6(2)",
+      "field": "consumer_care_details",
+      "description": "Name, address, telephone number, and e-mail address (if available) of the person or office that can be contacted for consumer complaints/grievances.",
+      "severity_if_missing": "major"
+    }
+  ],
+
+  "font_and_readability": [
+    {
+      "rule_id": "R7-3-min-height",
+      "citation": "Rule 7(3)",
+      "description": "Height of letters in any declaration shall not be less than 1 mm.",
+      "min_letter_height_mm": 1.0,
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R7-3-molded-height",
+      "citation": "Rule 7(3)",
+      "description": "Where a declaration is blown, formed, molded, embossed, or perforated, the height of letters shall not be less than 2 mm.",
+      "min_letter_height_mm": 2.0,
+      "applies_if": "surface_treatment in [blown, formed, molded, embossed, perforated]",
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R7-3-width-ratio",
+      "citation": "Rule 7(3)",
+      "description": "Width of a letter or numeral shall not be less than one-third of its height (exceptions: numeral '1' and letters i, I, l).",
+      "min_width_to_height_ratio": 0.333,
+      "exceptions": ["1", "i", "I", "l"],
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R7-numeral-height-slabs",
+      "citation": "Rule 7, Table I & Table II",
+      "description": "NEEDS_VERIFICATION — minimum numeral height for net-quantity/MRP declarations varies by declared net quantity slab (Table I: by weight/volume; Table II: by length/area/number), ranging roughly 1mm-6mm. Exact slab breakpoints must be transcribed from the official gazette text before this is used for automated readability checks.",
+      "slabs": [],
+      "severity_if_violated": "minor"
+    }
+  ],
+
+  "structural_rules": [
+    {
+      "rule_id": "R7-4-panel-area",
+      "citation": "Rule 7",
+      "description": "Principal display panel area basis: rectangular packages use one full side's surface area; cylindrical/pipe-shaped packages use 40% of height x circumference; other shapes use 40% of total surface area. Top/bottom/flanges/shoulders/necks are excluded from this calculation.",
+      "severity_if_violated": "minor"
+    }
+  ],
+
+  "exemptions": [
+    {
+      "rule_id": "EXEMPT-small-pack",
+      "citation": "Chapter II exemptions",
+      "description": "Packages sold by weight/measure amounting to less than 10 g or 10 ml (except tobacco products) are exempt from the standard declaration requirements."
+    },
+    {
+      "rule_id": "EXEMPT-bulk-pack",
+      "citation": "Chapter II exemptions",
+      "description": "Commodities packed in quantities greater than 25 kg or 25 litre (50 kg for cement and fertilizer) are exempt from retail-package-specific requirements."
+    },
+    {
+      "rule_id": "EXEMPT-food-service",
+      "citation": "Chapter II exemptions",
+      "description": "Fast food items packed by hotels/restaurants/similar establishments for direct sale are exempt."
+    },
+    {
+      "rule_id": "EXEMPT-scheduled-drugs",
+      "citation": "Chapter II exemptions",
+      "description": "Scheduled and non-scheduled drugs covered under the Drugs (Price Control) Order, 1995 are exempt from these specific declarations (other drug-labeling laws apply instead)."
+    }
+  ],
+
+  "ecommerce_note": {
+    "citation": "Rule 6(10)",
+    "description": "E-commerce entities must display all Rule 6(1) mandatory declarations on the digital/electronic listing, EXCEPT the month and year of manufacture/packing, which is not required on the online listing itself."
+  }
+}

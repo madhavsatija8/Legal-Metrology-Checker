@@ -1,0 +1,37 @@
+# --- Backend (Python) ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+*.db
+*.db-journal
+backend/legal_metrology.db
+
+# Uploaded label images (local-disk storage stand-in — see
+# backend/app/routers/scans.py's STORAGE_DIR). Never commit real scan
+# evidence; swap this for object storage before any real deployment.
+backend/app/storage/*
+!backend/app/storage/.gitkeep
+
+# --- Frontend (Node / Vite / TypeScript) ---
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+!.env.prod.example
+!frontend/.env.example
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

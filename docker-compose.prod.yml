@@ -1,0 +1,102 @@
+version: "3.9"
+
+# Production stack — see docs/DEPLOYMENT.md for the full runbook (DNS,
+# required env vars, backups, rule-config rollout). Not a drop-in
+# replacement for docker-compose.yml: that one is for local development
+# (bind-mounted code reload isn't set up here, Postgres isn't exposed to
+# the host, and nothing auto-seeds demo accounts).
+#
+# Usage:
+#   cp .env.prod.example .env.prod
+#   # edit .env.prod with real values
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: metrology
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      POSTGRES_DB: metrology
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U metrology"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Deliberately no `ports:` — only the backend, on the compose network,
+    # needs to reach Postgres. The dev compose file exposes 5432 to the
+    # host for local psql/DB-tool access; production shouldn't.
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://metrology:${POSTGRES_PASSWORD}@db:5432/metrology
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set a real random JWT_SECRET_KEY in .env.prod}
+      RULES_CONFIG_PATH: /app/rules/legal_metrology_rules.json
+      ALLOWED_ORIGINS: https://${DOMAIN_APP:?set DOMAIN_APP in .env.prod}
+      # Never auto-create the demo inspector/supervisor/admin accounts
+      # (with their known passwords, see backend/app/seed.py) in a real
+      # deployment. Create real accounts via POST /auth/register instead.
+      SEED_ON_START: "false"
+    volumes:
+      # Rule config stays a bind mount (read-only) so `docs/RULES_CONFIG.md`'s
+      # amend-and-sync workflow doesn't require a rebuild — edit the JSON on
+      # the host, then POST /rule-versions/sync-from-file as an admin.
+      - ./rules:/app/rules:ro
+      # Uploaded label images (see backend/app/routers/scans.py's
+      # STORAGE_DIR) need to survive container restarts/redeploys.
+      - storage_data:/app/app/storage
+    command:
+      - gunicorn
+      - app.main:app
+      - -k
+      - uvicorn.workers.UvicornWorker
+      - -w
+      - "4"
+      - -b
+      - 0.0.0.0:8000
+      - --access-logfile
+      - "-"
+      - --error-logfile
+      - "-"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the JS bundle at build time (see frontend/Dockerfile) —
+        # this must be the public URL the browser will actually reach,
+        # not an internal compose service name.
+        VITE_API_URL: https://${DOMAIN_API:?set DOMAIN_API in .env.prod}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN_APP: ${DOMAIN_APP}
+      DOMAIN_API: ${DOMAIN_API}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env.prod (Let's Encrypt cert expiry/revocation contact)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  db_data:
+  storage_data:
+  caddy_data:
+  caddy_config:

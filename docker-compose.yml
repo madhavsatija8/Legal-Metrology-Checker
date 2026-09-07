@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: metrology
+      POSTGRES_PASSWORD: metrology
+      POSTGRES_DB: metrology
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://metrology:metrology@db:5432/metrology
+      JWT_SECRET_KEY: change-this-in-production
+      RULES_CONFIG_PATH: /app/rules/legal_metrology_rules.json
+      # Runs alembic migrations then seeds an inspector/supervisor/admin
+      # user + sample products so you can start testing via /docs
+      # immediately. Set to "false" once you have real data.
+      SEED_ON_START: "true"
+    volumes:
+      - ./rules:/app/rules
+    ports:
+      - "8000:8000"
+
+volumes:
+  db_data:

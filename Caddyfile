@@ -1,0 +1,14 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# API — the frontend's VITE_API_URL (baked in at build time, see
+# frontend/Dockerfile) must point here.
+{$DOMAIN_API} {
+	reverse_proxy backend:8000
+}
+
+# Frontend static bundle (built + served by the frontend service's nginx).
+{$DOMAIN_APP} {
+	reverse_proxy frontend:80
+}
