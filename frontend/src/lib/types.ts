@@ -19,6 +19,7 @@ export interface User {
 
 export interface Product {
   id: string;
+  barcode?: string | null;
   name: string;
   brand?: string | null;
   category?: string | null;
@@ -30,6 +31,7 @@ export interface Product {
 
 export interface ProductInput {
   name: string;
+  barcode?: string;
   brand?: string;
   category?: string;
   manufacturer_name?: string;

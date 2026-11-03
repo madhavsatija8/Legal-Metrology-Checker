@@ -14,6 +14,35 @@ body {
   @apply bg-action-soft;
 }
 
+/* Thin, unobtrusive scrollbars so the app reads as a product, not a raw browser view. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c7cae0 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #c7cae0;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Shared table skin so every page's plain <table className="w-full text-left text-sm">
+   reads as a data grid rather than a raw HTML table, with no per-page edits needed. */
+table.data-table thead th {
+  @apply bg-paper text-[11px] font-semibold uppercase tracking-wide text-ink-soft;
+}
+table.data-table tbody tr {
+  @apply transition-colors;
+}
+table.data-table tbody tr:hover {
+  @apply bg-action-soft/40;
+}
+
 /* Visible keyboard focus everywhere — this is an enforcement tool used
    on shared/field devices, not just a mouse-driven dashboard. */
 a:focus-visible,

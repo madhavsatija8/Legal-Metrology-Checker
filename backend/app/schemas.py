@@ -43,6 +43,7 @@ class Token(BaseModel):
 
 class ProductCreate(BaseModel):
     name: str
+    barcode: Optional[str] = None
     brand: Optional[str] = None
     category: Optional[str] = None
     manufacturer_name: Optional[str] = None
@@ -55,6 +56,7 @@ class ProductCreate(BaseModel):
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
+    barcode: Optional[str] = None
     brand: Optional[str] = None
     category: Optional[str] = None
     manufacturer_name: Optional[str] = None

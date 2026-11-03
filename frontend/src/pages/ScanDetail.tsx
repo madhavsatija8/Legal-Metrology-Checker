@@ -97,6 +97,19 @@ export function ScanDetail() {
     }
   }
 
+  async function handleReprocess() {
+    if (!id) return;
+    setBusy(true);
+    setError("");
+    try {
+      setScan(await api.reprocessScan(id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Reprocessing failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleResolveViolation(violationId: string, note: string) {
     if (!scan) return;
     try {
@@ -123,6 +136,7 @@ export function ScanDetail() {
   if (!scan) return error ? <ErrorNote>{error}</ErrorNote> : <EmptyState>Loading…</EmptyState>;
 
   const fields = scan.extracted_fields?.fields;
+  const extractionError = (scan.extracted_fields as { error?: string } | undefined)?.error;
 
   return (
     <div className="space-y-6">
@@ -150,9 +164,23 @@ export function ScanDetail() {
 
       <ErrorNote>{error}</ErrorNote>
 
+      {extractionError && (
+        <div className="rounded-md border border-seal/30 bg-seal/5 p-4 text-sm text-seal">
+          <p className="font-medium">OCR Extraction Notice:</p>
+          <p className="mt-1 font-mono text-xs">{extractionError}</p>
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel>
-          <SectionHeading>Label image</SectionHeading>
+          <div className="flex items-center justify-between mb-2">
+            <SectionHeading>Label image</SectionHeading>
+            {scan.image_path && (
+              <Button variant="secondary" onClick={handleReprocess} disabled={busy}>
+                {busy ? "Processing…" : "Run OCR & Extract"}
+              </Button>
+            )}
+          </div>
           {scan.image_path ? (
             <img
               src={api.scanImageUrl(scan.image_path)}
@@ -205,7 +233,16 @@ export function ScanDetail() {
       <Panel>
         <SectionHeading>Extracted declarations</SectionHeading>
         {!fields ? (
-          <EmptyState>Upload a label image to extract declarations.</EmptyState>
+          <div className="space-y-3">
+            <EmptyState>Upload a label image or click "Run OCR & Extract" to process declarations.</EmptyState>
+            {scan.image_path && (
+              <div className="flex justify-center">
+                <Button onClick={handleReprocess} disabled={busy}>
+                  {busy ? "Processing OCR…" : "Run OCR & Extract Declarations"}
+                </Button>
+              </div>
+            )}
+          </div>
         ) : (
           <div>
             {Object.entries(fields).map(([name, field]) => (

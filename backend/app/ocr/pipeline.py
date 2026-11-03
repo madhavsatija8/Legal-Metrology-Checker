@@ -8,8 +8,8 @@ from .field_classifier import classify_fields
 from .preprocessing import preprocess_image
 
 
-def process_label_image(image_path: str, lang: str = "eng") -> dict:
-    processed = preprocess_image(image_path)
+def process_label_image(image_path: str, lang: str = "eng+hin", binarize: bool = True) -> dict:
+    processed = preprocess_image(image_path, binarize=binarize)
     blocks = run_ocr(processed, lang=lang)
     lines = group_into_lines(blocks)
     fields = classify_fields(lines)

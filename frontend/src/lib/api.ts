@@ -100,6 +100,10 @@ export function getProduct(id: string): Promise<Product> {
   return request<Product>(`/products/${id}`);
 }
 
+export function lookupProductByBarcode(barcode: string): Promise<Product> {
+  return request<Product>(`/products/lookup?barcode=${encodeURIComponent(barcode)}`);
+}
+
 export function createProduct(input: ProductInput): Promise<Product> {
   return request<Product>("/products", { method: "POST", body: JSON.stringify(input) });
 }
@@ -111,6 +115,11 @@ export function updateProduct(id: string, input: Partial<ProductInput>): Promise
 export function deleteProduct(id: string): Promise<void> {
   return request<void>(`/products/${id}`, { method: "DELETE" });
 }
+
+export function seedProducts(): Promise<{ inserted: number; skipped: number; total_seed_entries: number }> {
+  return request(`/products/seed`, { method: "POST" });
+}
+
 
 // ---- Scans ----
 
@@ -145,6 +154,10 @@ export function uploadScanImage(id: string, file: File): Promise<Scan> {
   const form = new FormData();
   form.append("file", file);
   return request<Scan>(`/scans/${id}/image`, { method: "POST", body: form });
+}
+
+export function reprocessScan(id: string): Promise<Scan> {
+  return request<Scan>(`/scans/${id}/reprocess`, { method: "POST" });
 }
 
 export function deleteScan(id: string): Promise<void> {

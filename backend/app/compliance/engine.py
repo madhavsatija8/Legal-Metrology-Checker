@@ -232,6 +232,80 @@ def _applicable_height_rule(font_rules: list[dict], ctx: ComplianceContext) -> d
     return base_rule
 
 
+def _table1_slab_threshold(slab_rule: dict, amount_g_or_ml: float, ctx: ComplianceContext) -> float | None:
+    """Table I (Rule 7(2)(i)): pick the slab whose weight/volume range
+    contains `amount_g_or_ml`, then return its normal- or molded-package
+    threshold depending on the product's surface treatment."""
+    molded = _surface_condition_met(
+        "blown formed molded embossed perforated" if ctx.surface_treatment else None, ctx
+    )
+    for slab in slab_rule.get("slabs", []):
+        lower = slab.get("more_than_g_or_ml", 0)
+        upper = slab.get("up_to_g_or_ml")
+        if amount_g_or_ml <= lower:
+            continue
+        if upper is not None and amount_g_or_ml > upper:
+            continue
+        return slab["min_height_mm_molded"] if molded else slab["min_height_mm_normal"]
+    return None
+
+
+def _evaluate_numeral_height_slabs(
+    fields: dict,
+    slab_rule: dict | None,
+    calibration_px_per_mm: float | None,
+    ctx: ComplianceContext,
+    result: ComplianceResult,
+) -> None:
+    """Rule 7(2)(i)/Table I: net-quantity and MRP numerals must clear a
+    threshold that scales with the declared weight/volume, not the flat
+    1mm/2mm of Rule 7(3) (which governs every *other* declaration on the
+    label). This only covers weight/volume packages (Table I) — Table II
+    (length/area/number, keyed to the package's own principal-display-
+    panel area) needs package-dimension input this pipeline doesn't
+    collect yet, and is reported as a review item instead."""
+    if not slab_rule or not slab_rule.get("slabs"):
+        return  # config not populated — nothing to enforce (shouldn't happen post-fill, kept as a safety no-op)
+
+    net_qty_field = fields.get("net_quantity", {})
+    normalized = _normalize_quantity(net_qty_field.get("value"))
+    if not normalized or normalized[1] != "mass_g" and normalized[1] != "volume_ml":
+        result.review_items.append(
+            ReviewItem(
+                rule_id=slab_rule["rule_id"],
+                category="not_automated",
+                note="Numeral-height slab (Table I) could not be evaluated — declared net quantity wasn't recognized as a weight or volume (it may be declared by length/area/number, which needs Table II and package-dimension input this pipeline doesn't collect yet).",
+            )
+        )
+        return
+    amount_g_or_ml, _dim = normalized
+    threshold = _table1_slab_threshold(slab_rule, amount_g_or_ml, ctx)
+    if threshold is None:
+        return
+
+    if not calibration_px_per_mm or calibration_px_per_mm <= 0:
+        return  # already reported once as "missing_calibration" by the caller
+
+    for field_name in ("net_quantity", "retail_sale_price"):
+        extracted = fields.get(field_name, {})
+        px = extracted.get("pixel_height")
+        if not extracted.get("matched") or not px:
+            continue
+        mm = px / calibration_px_per_mm
+        if mm < threshold:
+            result.violations.append(
+                ViolationDraft(
+                    rule_id=slab_rule["rule_id"],
+                    citation=slab_rule.get("citation"),
+                    description=(
+                        f"'{field_name}' numeral height is approximately {mm:.2f}mm, below the "
+                        f"{threshold}mm minimum required by Table I for a {amount_g_or_ml:g}g/ml package."
+                    ),
+                    severity=slab_rule.get("severity_if_violated", "minor"),
+                )
+            )
+
+
 def _evaluate_font_and_readability(
     fields: dict,
     font_rules: list[dict],
@@ -251,7 +325,12 @@ def _evaluate_font_and_readability(
         height_rule = _applicable_height_rule(font_rules, ctx)
         if height_rule:
             threshold = height_rule["min_letter_height_mm"]
+            # net_quantity/retail_sale_price are excluded here: their
+            # numerals are governed by the Table I slab check below
+            # instead of this flat threshold (Rule 7(2) vs Rule 7(3)).
             for field_name, extracted in fields.items():
+                if field_name in ("net_quantity", "retail_sale_price"):
+                    continue
                 if not isinstance(extracted, dict):
                     continue
                 px = extracted.get("pixel_height")
@@ -284,10 +363,8 @@ def _evaluate_font_and_readability(
             )
         )
 
-    # Numeral height slabs by net-quantity: the config intentionally left
-    # this empty pending legal verification (see the NEEDS_VERIFICATION
-    # note in the rules file). Surface that explicitly rather than
-    # silently skipping it, so nobody mistakes silence for compliance.
+    # Numeral height slabs by net-quantity (Table I) — now enforced using
+    # the verified slab data in the rules config.
     slab_rule = next((r for r in font_rules if r["rule_id"] == "R7-numeral-height-slabs"), None)
     if slab_rule and not slab_rule.get("slabs"):
         result.review_items.append(
@@ -295,6 +372,23 @@ def _evaluate_font_and_readability(
                 rule_id=slab_rule["rule_id"],
                 category="rule_pending_verification",
                 note="Numeral height slab thresholds are not yet populated in the rules config — this rule is not enforced until the legal text is confirmed and the config updated.",
+            )
+        )
+    else:
+        _evaluate_numeral_height_slabs(fields, slab_rule, calibration_px_per_mm, ctx, result)
+
+    # Table II (length/area/number) is stored in the config for
+    # reference but always surfaced as a review item — it needs package
+    # dimension/principal-display-panel-area input this pipeline doesn't
+    # collect, unlike Table I which can be driven off the declared
+    # weight/volume alone.
+    slab_rule_2 = next((r for r in font_rules if r["rule_id"] == "R7-numeral-height-slabs-table2"), None)
+    if slab_rule_2:
+        result.review_items.append(
+            ReviewItem(
+                rule_id=slab_rule_2["rule_id"],
+                category="not_automated",
+                note="Table II (length/area/number numeral-height slabs) requires principal-display-panel area input not yet captured — not automatically evaluated.",
             )
         )
 

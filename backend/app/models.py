@@ -48,7 +48,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.INSPECTOR, nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=UserRole.INSPECTOR,
+        nullable=False,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -59,6 +63,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    barcode: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
     brand: Mapped[str] = mapped_column(String, nullable=True)
     category: Mapped[str] = mapped_column(String, nullable=True)
@@ -84,7 +89,10 @@ class Scan(Base):
     created_by_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     image_path: Mapped[str] = mapped_column(String, nullable=True)  # object storage key, wired in Step 4
-    status: Mapped[ScanStatus] = mapped_column(Enum(ScanStatus), default=ScanStatus.PENDING)
+    status: Mapped[ScanStatus] = mapped_column(
+        Enum(ScanStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        default=ScanStatus.PENDING,
+    )
 
     # Raw + structured extraction output from the OCR module (Step 4).
     # Kept as JSON for now since the schema will evolve as extraction improves.
@@ -124,7 +132,10 @@ class Violation(Base):
     rule_id: Mapped[str] = mapped_column(String, nullable=False)  # references an id in legal_metrology_rules.json
     citation: Mapped[str] = mapped_column(String, nullable=True)  # e.g. "Rule 6(1)(a)", copied at write-time
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    severity: Mapped[ViolationSeverity] = mapped_column(Enum(ViolationSeverity), nullable=False)
+    severity: Mapped[ViolationSeverity] = mapped_column(
+        Enum(ViolationSeverity, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        nullable=False,
+    )
 
     # Set by the Step 5 engine when the underlying OCR match was low-
     # confidence (e.g. unanchored keyword match) — the violation is a real

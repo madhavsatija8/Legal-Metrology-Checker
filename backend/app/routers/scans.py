@@ -223,6 +223,43 @@ def upload_scan_image(
     return scan
 
 
+@router.post("/{scan_id}/reprocess", response_model=schemas.ScanOut)
+def reprocess_scan_image(
+    scan_id: str,
+    db: Session = Depends(get_db),
+    _current_user: models.User = Depends(get_current_user),
+):
+    """
+    Re-runs the OCR & extraction pipeline on the scan's existing stored image.
+    Useful when upgrading OCR/classifier logic or recovering from an earlier extraction failure.
+    """
+    scan = db.get(models.Scan, scan_id)
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    if not scan.image_path:
+        raise HTTPException(status_code=400, detail="Scan has no image to process — upload an image first.")
+
+    stored_path = os.path.join(STORAGE_DIR, scan.image_path)
+    if not os.path.exists(stored_path):
+        raise HTTPException(status_code=404, detail="Scan image file not found on disk.")
+
+    scan.status = models.ScanStatus.PROCESSING
+    db.commit()
+
+    try:
+        result = process_label_image(stored_path)
+        scan.extracted_fields = result
+        scan.status = models.ScanStatus.REVIEW
+        _run_compliance_evaluation(db, scan)
+    except Exception as exc:
+        scan.extracted_fields = {"error": str(exc)}
+        scan.status = models.ScanStatus.PENDING
+
+    db.commit()
+    db.refresh(scan)
+    return scan
+
+
 @router.delete("/{scan_id}", status_code=204)
 def delete_scan(
     scan_id: str,

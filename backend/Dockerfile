@@ -3,9 +3,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # tesseract-ocr is the OCR engine used by the extraction pipeline (Step 4).
-# Add tesseract-ocr-hin (or other tesseract-ocr-<lang> packages) here too
-# if labels need a regional-language OCR pass alongside English.
-RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr \
+# tesseract-ocr-hin is installed because the pipeline defaults to
+# lang="eng+hin" (backend/app/ocr/extraction.py) — most Indian packaging
+# carries a Devanagari declaration alongside the English one. Add further
+# tesseract-ocr-<lang> packages here for other regional scripts as needed.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-hin \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

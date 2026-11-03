@@ -1,12 +1,14 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from . import models
-from .database import Base, engine
+from .database import Base, engine, SessionLocal
 from .routers import auth, products, reports, rule_versions, scans, users, violations
+from .seed_products import get_seed_data
 
 # For local/dev use (no Postgres, just `uvicorn app.main:app --reload`),
 # create tables directly from the models so the API works immediately.
@@ -15,7 +17,36 @@ from .routers import auth, products, reports, rule_versions, scans, users, viola
 # tables Alembic already created.
 Base.metadata.create_all(bind=engine)
 
+
+def _auto_seed_products() -> None:
+    """Insert the curated Indian product catalogue on first run (no-ops if already populated)."""
+    db = SessionLocal()
+    try:
+        count = db.query(models.Product).count()
+        if count > 0:
+            return  # Already seeded — don't duplicate
+        for entry in get_seed_data():
+            db.add(models.Product(
+                name=entry["name"],
+                brand=entry.get("brand"),
+                category=entry.get("category"),
+                manufacturer_name=entry.get("manufacturer_name"),
+                is_imported=entry.get("is_imported", False),
+                barcode=entry.get("barcode"),
+            ))
+        db.commit()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _auto_seed_products()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Legal Metrology Compliance Checker API",
     description=(
         "API for scanning packaged commodity labels and checking compliance "

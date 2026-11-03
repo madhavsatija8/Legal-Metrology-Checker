@@ -18,11 +18,11 @@ violation_severity = sa.Enum("minor", "major", "critical", name="violationseveri
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    user_role.create(bind, checkfirst=True)
-    scan_status.create(bind, checkfirst=True)
-    violation_severity.create(bind, checkfirst=True)
-
+    # Each enum type above is used in exactly one column of one table below,
+    # so op.create_table() creates the Postgres ENUM type automatically as
+    # part of that table's DDL — no separate .create() call is needed here
+    # (calling it manually caused a duplicate CREATE TYPE error, since
+    # Alembic's create_table doesn't check-first when it auto-creates the type).
     op.create_table(
         "users",
         sa.Column("id", sa.String(), primary_key=True),

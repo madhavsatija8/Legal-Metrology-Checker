@@ -1,19 +1,19 @@
 {
-  "version_label": "2025-09-draft-v1",
-  "source": "Legal Metrology (Packaged Commodities) Rules, 2011 (as amended)",
-  "note": "This config is the single source of truth for the compliance engine. Do not hardcode thresholds in application code — always read from here. Some entries are marked NEEDS_VERIFICATION where the exact legal text should be re-checked against the current official gazette notification before this is relied on for real enforcement decisions.",
+  "version_label": "2026-09-verified-v2",
+  "source": "Legal Metrology (Packaged Commodities) Rules, 2011 (GSR 202(E), 7 March 2011), as amended, cross-checked against the Department of Consumer Affairs (consumeraffairs.gov.in) Legal Metrology Act page and the official gazette text.",
+  "note": "This config is the single source of truth for the compliance engine. Do not hardcode thresholds in application code — always read from here. Entries carry a 'citation' pointing to the specific rule and, where useful, a 'verified_against' note on what source confirmed the number. Entries still marked NEEDS_VERIFICATION should be re-checked against the current official gazette notification before being relied on for real enforcement decisions.",
 
   "mandatory_declarations": [
     {
       "rule_id": "R6-1-a",
       "citation": "Rule 6(1)(a)",
       "field": "manufacturer_packer_importer_details",
-      "description": "Name and address of the manufacturer, or where the manufacturer is not the packer, the name and address of the manufacturer and packer; for imported packages, the name and address of the importer.",
+      "description": "Name and address of the manufacturer, or where the manufacturer is not the packer, the name and address of the manufacturer and packer; for imported packages, the name and address of the importer. Since 1 Jan 2016 (GSR 385(E)), the address declared must be the registered office address.",
       "severity_if_missing": "major"
     },
     {
       "rule_id": "R6-1-a-origin",
-      "citation": "Rule 6",
+      "citation": "Rule 6 (country of origin, imported packages)",
       "field": "country_of_origin",
       "description": "Country of origin, applicable only for imported products.",
       "condition": "applies_if.is_imported == true",
@@ -23,29 +23,29 @@
       "rule_id": "R6-1-b",
       "citation": "Rule 6(1)(b)",
       "field": "generic_name",
-      "description": "The common or generic name of the commodity contained in the package.",
+      "description": "The common or generic name of the commodity contained in the package; where a package contains more than one product, the name and quantity of each product.",
       "severity_if_missing": "major"
     },
     {
       "rule_id": "R6-1-net-qty",
-      "citation": "Rule 6",
+      "citation": "Rule 6(1)(c)",
       "field": "net_quantity",
-      "description": "Net quantity of the commodity in the package, expressed in standard units of weight, measure, or number.",
+      "description": "Net quantity of the commodity in the package, in the standard unit of weight, measure, or number (Rule 13 governs which unit — e.g. grams below 1kg, kilograms at/above 1kg).",
       "severity_if_missing": "critical"
     },
     {
       "rule_id": "R6-1-mrp",
-      "citation": "Rule 6",
+      "citation": "Rule 6(1)(e), read with Rule 2(m)",
       "field": "retail_sale_price",
-      "description": "Retail sale price (MRP), which must be inclusive of all taxes.",
+      "description": "Retail sale price (MRP), printed as 'Max./Maximum retail price Rs. ... inclusive of all taxes' or 'MRP Rs. ... incl. of all taxes'. Fractions below 50 paise are rounded down to the preceding rupee, and 50-95 paise rounded up to the next fifty paise.",
       "format_check": "must_contain_inclusive_of_taxes_wording",
       "severity_if_missing": "critical"
     },
     {
       "rule_id": "R6-1-date",
-      "citation": "Rule 6",
+      "citation": "Rule 6(1)(d)",
       "field": "date_of_manufacture_or_packing_or_import",
-      "description": "Month and year in which the commodity was manufactured, packed, or imported.",
+      "description": "Month and year in which the commodity was manufactured, pre-packed, or imported (may be expressed in words, numerals, or both).",
       "severity_if_missing": "major"
     },
     {
@@ -61,7 +61,7 @@
     {
       "rule_id": "R7-3-min-height",
       "citation": "Rule 7(3)",
-      "description": "Height of letters in any declaration shall not be less than 1 mm.",
+      "description": "Height of letters in any declaration (other than the net-quantity/MRP numerals governed by the Table I/II slabs below) shall not be less than 1 mm.",
       "min_letter_height_mm": 1.0,
       "severity_if_violated": "minor"
     },
@@ -75,7 +75,7 @@
     },
     {
       "rule_id": "R7-3-width-ratio",
-      "citation": "Rule 7(3)",
+      "citation": "Rule 7(3), proviso",
       "description": "Width of a letter or numeral shall not be less than one-third of its height (exceptions: numeral '1' and letters i, I, l).",
       "min_width_to_height_ratio": 0.333,
       "exceptions": ["1", "i", "I", "l"],
@@ -83,9 +83,30 @@
     },
     {
       "rule_id": "R7-numeral-height-slabs",
-      "citation": "Rule 7, Table I & Table II",
-      "description": "NEEDS_VERIFICATION — minimum numeral height for net-quantity/MRP declarations varies by declared net quantity slab (Table I: by weight/volume; Table II: by length/area/number), ranging roughly 1mm-6mm. Exact slab breakpoints must be transcribed from the official gazette text before this is used for automated readability checks.",
-      "slabs": [],
+      "citation": "Rule 7(2)(i), Table I",
+      "description": "Minimum height of any numeral in the net-quantity or MRP declaration on the principal display panel, where net quantity is declared by weight or volume. Verified against the official gazette text (GSR 202(E), 7 March 2011), Rule 7 Table I.",
+      "verified_against": "https://legalmetrology.nagaland.gov.in/documents/11/9_The_Legal_Metrology_Package_Commodities_Rules_2011.pdf",
+      "applies_to_fields": ["net_quantity", "retail_sale_price"],
+      "dimension": "mass_g_or_volume_ml",
+      "slabs": [
+        { "up_to_g_or_ml": 200, "min_height_mm_normal": 1, "min_height_mm_molded": 2 },
+        { "more_than_g_or_ml": 200, "up_to_g_or_ml": 500, "min_height_mm_normal": 2, "min_height_mm_molded": 4 },
+        { "more_than_g_or_ml": 500, "min_height_mm_normal": 4, "min_height_mm_molded": 6 }
+      ],
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R7-numeral-height-slabs-table2",
+      "citation": "Rule 7(2)(ii), Table II",
+      "description": "Minimum height of any numeral in the net-quantity declaration where net quantity is declared by length, area, or number — the applicable slab is chosen by the principal display panel's own area, not the declared quantity. Not automatically evaluated: this pipeline does not currently capture package/PDP dimensions. Verified against the official gazette text.",
+      "verified_against": "https://legalmetrology.nagaland.gov.in/documents/11/9_The_Legal_Metrology_Package_Commodities_Rules_2011.pdf",
+      "dimension": "principal_display_panel_area_cm2",
+      "slabs": [
+        { "up_to_cm2": 100, "min_height_mm_normal": 1, "min_height_mm_molded": 2 },
+        { "more_than_cm2": 100, "up_to_cm2": 500, "min_height_mm_normal": 2, "min_height_mm_molded": 4 },
+        { "more_than_cm2": 500, "up_to_cm2": 2500, "min_height_mm_normal": 4, "min_height_mm_molded": 6 },
+        { "more_than_cm2": 2500, "min_height_mm_normal": 6, "min_height_mm_molded": 6 }
+      ],
       "severity_if_violated": "minor"
     }
   ],
@@ -93,37 +114,131 @@
   "structural_rules": [
     {
       "rule_id": "R7-4-panel-area",
-      "citation": "Rule 7",
+      "citation": "Rule 2(h), Rule 7",
       "description": "Principal display panel area basis: rectangular packages use one full side's surface area; cylindrical/pipe-shaped packages use 40% of height x circumference; other shapes use 40% of total surface area. Top/bottom/flanges/shoulders/necks are excluded from this calculation.",
       "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R8-1-quantity-clear-space",
+      "citation": "Rule 8(1), proviso",
+      "description": "The area immediately surrounding the net-quantity declaration must be free of any other printed information: at least the numeral's own height, above and below; and at least twice the numeral's height, to the left and right. Not automatically evaluated — requires spatial layout analysis of the surrounding print area, not just line-level OCR.",
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R9-1-b-contrast-colour",
+      "citation": "Rule 9(1)(b)",
+      "description": "Numerals of the retail sale price and net-quantity declaration must be printed, painted, or inscribed in a colour that contrasts conspicuously with the label background (waived for information blown/formed/molded directly on glass or plastic). Not automatically evaluated — requires colour-contrast analysis, not text extraction.",
+      "severity_if_violated": "minor"
+    },
+    {
+      "rule_id": "R9-4-permitted-languages",
+      "citation": "Rule 9(4)",
+      "description": "Declarations must be in Hindi (Devanagari script) or English; any other language may additionally be used alongside Hindi/English.",
+      "severity_if_violated": "minor"
+    }
+  ],
+
+  "pricing_rules": [
+    {
+      "rule_id": "R18-2-no-overcharging",
+      "citation": "Rule 18(2)",
+      "description": "No retail dealer or other person shall sell a packaged commodity at a price exceeding the declared retail sale price.",
+      "severity_if_violated": "critical"
+    },
+    {
+      "rule_id": "DUAL-MRP-BAN",
+      "citation": "Rule 6, as amended (2022 amendment)",
+      "description": "A manufacturer/packer/importer may not declare two different MRPs on identical pre-packaged commodities, unless specifically permitted under another law. Not automatically evaluated by a single-scan pipeline — requires cross-referencing multiple scans of the same product/batch.",
+      "severity_if_violated": "major"
     }
   ],
 
   "exemptions": [
     {
       "rule_id": "EXEMPT-small-pack",
-      "citation": "Chapter II exemptions",
-      "description": "Packages sold by weight/measure amounting to less than 10 g or 10 ml (except tobacco products) are exempt from the standard declaration requirements."
+      "citation": "Rule 26(a)",
+      "description": "Packages sold by weight/measure amounting to 10 g or 10 ml or less are exempt from Chapter II's standard declaration requirements (this exemption does not extend to tobacco products packed and sold in such small quantities).",
+      "net_quantity_threshold_g_or_ml": 10,
+      "comparison": "less_than_or_equal"
+    },
+    {
+      "rule_id": "EXEMPT-small-pack-10-20-proviso",
+      "citation": "Rule 26(a), proviso",
+      "description": "NEEDS_VERIFICATION — a proviso requiring MRP and net-quantity declarations on packages between 10-20 g/ml was withdrawn with effect from 1 July 2012 (GSR 748(E), 24 Oct 2011); current in-force status should be re-confirmed against the latest consolidated rules text before being enforced.",
+      "range_g_or_ml": [10, 20]
     },
     {
       "rule_id": "EXEMPT-bulk-pack",
-      "citation": "Chapter II exemptions",
-      "description": "Commodities packed in quantities greater than 25 kg or 25 litre (50 kg for cement and fertilizer) are exempt from retail-package-specific requirements."
+      "citation": "Rule 3(a)",
+      "description": "Packages of commodities containing a quantity greater than 25 kg or 25 litre are outside Chapter II's scope entirely, except cement and fertilizer sold in bags up to 50 kg (which remain exempt at that higher threshold).",
+      "bulk_threshold_g_or_ml": 25000,
+      "bulk_threshold_g_or_ml_cement_fertilizer": 50000
+    },
+    {
+      "rule_id": "EXEMPT-industrial-institutional",
+      "citation": "Rule 3(b)",
+      "description": "Packaged commodities meant for industrial consumers (bought directly from the manufacturer for use by that industry) or institutional consumers (e.g. transport, airlines, railways, hotels, hospitals, buying directly from the manufacturer for institutional use) are outside Chapter II's scope."
     },
     {
       "rule_id": "EXEMPT-food-service",
-      "citation": "Chapter II exemptions",
-      "description": "Fast food items packed by hotels/restaurants/similar establishments for direct sale are exempt."
+      "citation": "Rule 26(b)",
+      "description": "Fast food items packed by a restaurant, hotel, or similar establishment for direct sale are exempt."
     },
     {
       "rule_id": "EXEMPT-scheduled-drugs",
-      "citation": "Chapter II exemptions",
-      "description": "Scheduled and non-scheduled drugs covered under the Drugs (Price Control) Order, 1995 are exempt from these specific declarations (other drug-labeling laws apply instead)."
+      "citation": "Rule 26(c)",
+      "description": "Scheduled and non-scheduled formulations covered under the Drugs (Price Control) Order, 1995 (made under the Essential Commodities Act, 1955) are exempt from these declarations (other drug-labeling laws apply instead)."
+    },
+    {
+      "rule_id": "EXEMPT-farm-produce",
+      "citation": "Rule 26(d)",
+      "description": "Agricultural farm produce in packages above 50 kg is exempt."
+    },
+    {
+      "rule_id": "EXEMPT-bidi-incense-mfg-date",
+      "citation": "Rule 6(1)(g), proviso (A)",
+      "description": "No month/year-of-manufacture declaration is required on packages of bidis or incense sticks, or on a 14.2kg/5kg domestic LPG cylinder bottled and marketed by a public sector undertaking."
+    },
+    {
+      "rule_id": "EXEMPT-bidi-lpg-price",
+      "citation": "Rule 6(1)(g), proviso (C)",
+      "description": "No retail-sale-price declaration is required on bidi packages, or on a domestic LPG cylinder whose price is covered under the government's Administrative Price Mechanism."
+    },
+    {
+      "rule_id": "EXEMPT-food-articles-mfg-date",
+      "citation": "Rule 6(1)(d), proviso",
+      "description": "For packages containing food articles, the month/year-of-manufacture-or-packing declaration is instead governed by the Prevention of Food Adulteration Act, 1954 (now the Food Safety and Standards Act regime) rather than this rule directly."
     }
   ],
 
+  "maximum_permissible_error": {
+    "citation": "First Schedule, Table I (weight/volume)",
+    "note": "Not a labelling/declaration check — governs the physical fill-quantity tolerance verified during an at-premises inspection (Rule 19), not something derivable from a label photo. Retained here for completeness/reference.",
+    "by_weight_or_volume_g_or_ml": [
+      { "up_to": 50, "max_error_percent": 9 },
+      { "range": [50, 100], "max_error_percent": 4.5 },
+      { "range": [100, 200], "max_error_percent": 4.5 },
+      { "range": [200, 300], "max_error_percent": 9 },
+      { "range": [300, 500], "max_error_percent": 3 },
+      { "range": [500, 1000], "max_error_percent": 15 },
+      { "range": [1000, 10000], "max_error_percent": 1.5 },
+      { "range": [10000, 15000], "max_error_percent": 150 },
+      { "more_than": 15000, "max_error_percent": 1.0 }
+    ],
+    "by_length_area_or_number": [
+      { "unit": "length", "max_error": "2% of declared quantity up to 10 metre, thereafter 1%" },
+      { "unit": "area", "max_error": "4% of declared quantity up to 10 sq. metre, thereafter 1%" },
+      { "unit": "number", "max_error": "2% of declared quantity" }
+    ]
+  },
+
+  "registration": {
+    "citation": "Rule 27",
+    "description": "Every manufacturer, packer, or importer who pre-packs or imports a commodity for sale must register their name and complete address with the Director/Controller of Legal Metrology, within 90 days of starting such pre-packing/import, accompanied by a registration fee of Rs. 500 (Rs. 100 to amend an existing certificate)."
+  },
+
   "ecommerce_note": {
-    "citation": "Rule 6(10)",
-    "description": "E-commerce entities must display all Rule 6(1) mandatory declarations on the digital/electronic listing, EXCEPT the month and year of manufacture/packing, which is not required on the online listing itself."
+    "citation": "Rule 6(10) (inserted by the Legal Metrology (Packaged Commodities) Amendment Rules, 2017, effective 1 Jan 2018)",
+    "description": "An e-commerce entity must display all Rule 6(1) mandatory declarations (name/address of manufacturer-packer-importer, generic name, net quantity, MRP inclusive of taxes, country of origin, consumer care details) on the digital/electronic listing, EXCEPT the month and year of manufacture/packing, which is not required on the online listing itself. Subsequent amendments (2021-2022 onward) have further tightened country-of-origin and grievance-redressal disclosure for e-commerce listings — re-verify against the latest gazette notification for a listing-compliance check, since this area has amended more frequently than the core Chapter II package rules."
   }
 }
